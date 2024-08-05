@@ -3,8 +3,8 @@ package me.iamsahil.flutterandroidnativeintegration
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Button
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -21,22 +21,10 @@ class MainActivity : AppCompatActivity() {
 
     // Declare a local variable to reference the FlutterFragment so that you
     // can forward calls to it later.
-    private var flutterFragment: FlutterFragment? = null
+    private var flutterFragment: CustomFlutterFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
-        // Inflate a layout that has a container for your FlutterFragment. For
-        // this example, assume that a FrameLayout exists with an ID of
-        // R.id.fragment_container.
         setContentView(R.layout.activity_main)
 
         // Get a reference to the Activity's FragmentManager to add a new
@@ -46,11 +34,11 @@ class MainActivity : AppCompatActivity() {
         // Attempt to find an existing FlutterFragment, in case this is not the
         // first time that onCreate() was run.
         flutterFragment = fragmentManager
-            .findFragmentByTag(TAG_FLUTTER_FRAGMENT) as FlutterFragment?
+            .findFragmentByTag(TAG_FLUTTER_FRAGMENT) as CustomFlutterFragment?
 
         // Create and attach a FlutterFragment if one does not exist.
         if (flutterFragment == null) {
-            var newFlutterFragment = FlutterFragment.createDefault()
+            val newFlutterFragment = CustomFlutterFragment()
             flutterFragment = newFlutterFragment
             fragmentManager
                 .beginTransaction()
@@ -60,6 +48,10 @@ class MainActivity : AppCompatActivity() {
                     TAG_FLUTTER_FRAGMENT
                 )
                 .commit()
+        }
+
+        findViewById<Button>(R.id.btnNavigateToFlutterActivity).setOnClickListener {
+            startActivity(Intent(this@MainActivity, FlutterActivity::class.java))
         }
     }
 
@@ -74,9 +66,16 @@ class MainActivity : AppCompatActivity() {
         flutterFragment!!.onNewIntent(intent)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        super.onBackPressed()
-        flutterFragment!!.onBackPressed()
+        flutterFragment?.canHandleBackPress { canHandle ->
+            if (canHandle) {
+                flutterFragment?.onBackPressed()
+                return@canHandleBackPress
+            }
+            // If not handled, perform default back press behavior
+            super.onBackPressed()
+        } ?: super.onBackPressed()
     }
 
     override fun onRequestPermissionsResult(
@@ -91,6 +90,8 @@ class MainActivity : AppCompatActivity() {
             grantResults
         )
     }
+
+
 
     override fun onActivityResult(
         requestCode: Int,
